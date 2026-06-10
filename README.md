@@ -1,2 +1,2 @@
 # mimusic-jsplugin-releases
-MiMusic Team Release Plugins
+AudioBook Release Plugins
