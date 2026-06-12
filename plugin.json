@@ -1,14 +1,18 @@
 {
   "$schema": "https://raw.githubusercontent.com/songloft-org/plugin-toolchain/main/schemas/plugin.schema.json",
   "name": "有声书",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "本地有声书管理与播放：扫描本地有声书目录，提供分类展示、搜索、章节播放、播放进度与收藏功能。",
   "author": "MiMusic Team",
   "homepage": "",
-  "license": "MIT",
+  "license": "Apache-2.0",
+  "icon": "icon.svg",
   "entryPath": "audiobook",
   "main": "main.js",
   "minHostVersion": "2.0.0",
+  "externalPaths": [
+    "/app/audiobook"
+  ],
   "permissions": [
     "storage",
     "fs",
@@ -17,7 +21,7 @@
     "command"
   ],
   "updateUrl": "https://raw.githubusercontent.com/mimusic-org/mimusic-jsplugin-releases/audiobook/plugin.json",
-  "download_url": "https://github.com/mimusic-org/mimusic-jsplugin-releases/releases/download/audiobook-v1.0.2/audiobook.jsplugin.zip",
+  "download_url": "https://github.com/mimusic-org/mimusic-jsplugin-releases/releases/download/audiobook-v1.0.3/audiobook.jsplugin.zip",
   "entryHash": "",
   "zipHash": ""
 }
