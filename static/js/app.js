@@ -530,11 +530,19 @@
     }
 
     if (offsetToSeek) {
-      const seekOnLoad = () => {
-        dom.audio.currentTime = offsetToSeek;
-        dom.audio.removeEventListener('loadedmetadata', seekOnLoad);
+      const performSeek = () => {
+        try {
+          dom.audio.currentTime = offsetToSeek;
+        } catch (e) {
+          console.error('Seek error:', e);
+        }
+        dom.audio.removeEventListener('loadedmetadata', performSeek);
+        dom.audio.removeEventListener('canplay', performSeek);
+        dom.audio.removeEventListener('playing', performSeek);
       };
-      dom.audio.addEventListener('loadedmetadata', seekOnLoad);
+      dom.audio.addEventListener('loadedmetadata', performSeek);
+      dom.audio.addEventListener('canplay', performSeek);
+      dom.audio.addEventListener('playing', performSeek);
     }
 
     // 开始播放并切入播放页面
