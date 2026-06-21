@@ -1,9 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/songloft-org/plugin-toolchain/main/schemas/plugin.schema.json",
-  "name": "有声书",
-  "version": "1.0.6",
-  "description": "本地有声书管理与播放：扫描本地有声书目录，提供分类展示、搜索、章节播放、播放进度与收藏功能。",
-  "author": "MiMusic Team",
+  "name": "有声书播放器",
+  "version": "2.0.0",
+  "description": "全新本地有声书管理与播放：异步高效扫描本地目录，提供小卡片响应式布局、收藏排序、15s快进退、倍速播放与进度续播功能。",
+  "author": "Songloft Developer",
   "homepage": "",
   "license": "Apache-2.0",
   "icon": "icon.svg",
@@ -20,8 +20,8 @@
     "fs:external",
     "command"
   ],
-  "updateUrl": "https://raw.githubusercontent.com/mimusic-org/mimusic-jsplugin-releases/audiobook/plugin.json",
-  "download_url": "https://github.com/mimusic-org/mimusic-jsplugin-releases/releases/download/audiobook-v1.0.6/audiobook.jsplugin.zip",
+  "updateUrl": "",
+  "download_url": "",
   "entryHash": "",
   "zipHash": ""
 }

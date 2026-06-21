@@ -1,0 +1,16 @@
+{
+  "name": "audiobook",
+  "version": "2.0.0",
+  "description": "本地有声书管理与播放插件",
+  "private": true,
+  "scripts": {
+    "build": "songloft-plugin build",
+    "dev": "songloft-plugin dev",
+    "validate": "songloft-plugin validate"
+  },
+  "devDependencies": {
+    "@songloft/plugin-builder": "^2.6.0",
+    "@songloft/plugin-sdk": "^2.6.0",
+    "typescript": "^5.9.3"
+  }
+}

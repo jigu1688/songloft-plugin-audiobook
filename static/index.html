@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>有声书播放器</title>
+    <!-- main.go injectHTMLHead will inject common.css and common.js automatically here -->
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" class="svg-icon"><path fill="currentColor" d="M12,2A10,10 0 0,0 2,12V18A3,3 0 0,0 5,21H8V14H4V12A8,8 0 0,1 12,4A8,8 0 0,1 20,12V14H16V21H19A3,3 0 0,0 22,18V12A10,10 0 0,0 12,2M12,6A6,6 0 0,0 6,12V13H8V19H7A1,1 0 0,1 6,18V15H4V12A8,8 0 0,1 12,6Z"/></svg>
+                </div>
+                <div class="header-info">
+                    <h1>有声书</h1>
+                    <span class="sub-text">本地资源管理器</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="搜索书名、作者、简介...">
+                    <button class="icon-btn" id="search-btn">
+                        <svg viewBox="0 0 24 24" class="svg-icon"><path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/></svg>
+                    </button>
+                </div>
+                <button class="btn" id="scan-btn">
+                    <span class="btn-text">扫描书籍</span>
+                    <span class="spinner hidden"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="app-main">
+            <!-- Filter & Sort Bar -->
+            <div class="control-bar">
+                <div class="control-left">
+                    <label for="sort-select">排序:</label>
+                    <select id="sort-select" class="select-input">
+                        <option value="name">书名排序</option>
+                        <option value="chapters">章节数量</option>
+                        <option value="size">文件大小</option>
+                    </select>
+                </div>
+                <div class="control-right">
+                    <span id="book-count" class="badge">共 0 本</span>
+                </div>
+            </div>
+
+            <!-- Scanning Progress banner (hidden by default) -->
+            <div id="scan-progress-banner" class="progress-banner hidden">
+                <div class="progress-text">正在扫描目录... 已发现 <span id="progress-count">0</span> 本书籍</div>
+                <div class="progress-folder-info" id="progress-folder">/app/audiobook</div>
+            </div>
+
+            <!-- Recently Played Section -->
+            <section class="recent-section hidden" id="recent-section">
+                <h2>最近播放</h2>
+                <div class="recent-grid" id="recent-grid">
+                    <!-- Recently played items injected here -->
+                </div>
+            </section>
+
+            <!-- All Books Grid Section -->
+            <section class="books-section">
+                <h2>全部书籍</h2>
+                <div class="books-grid" id="books-grid">
+                    <!-- Book cards injected here -->
+                </div>
+                <div class="empty-state hidden" id="empty-state">
+                    <div class="empty-icon">
+                        <svg viewBox="0 0 24 24" class="svg-icon"><path fill="currentColor" d="M19,2H5A2,2 0 0,0 3,4V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V4A2,2 0 0,0 19,2M19,20H5V4H19V20M17,17H7V15H17V17M17,13H7V11H17V13M17,9H7V7H17V9Z"/></svg>
+                    </div>
+                    <p>未发现书籍，请点击右上角按钮开始扫描</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Chapter Detail Drawer (Sidebar Modal) -->
+        <div class="drawer-overlay hidden" id="drawer-overlay"></div>
+        <div class="drawer hidden" id="drawer">
+            <div class="drawer-header">
+                <button class="icon-btn close-btn" id="drawer-close">
+                    <svg viewBox="0 0 24 24" class="svg-icon"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/></svg>
+                </button>
+                <div class="drawer-book-info">
+                    <img id="drawer-cover" class="book-cover-large" src="" alt="Cover">
+                    <div class="drawer-book-meta">
+                        <h2 id="drawer-title">书籍标题</h2>
+                        <span id="drawer-author" class="author-text">作者</span>
+                        <span id="drawer-stats" class="stats-text">章节数 • 大小</span>
+                    </div>
+                </div>
+            </div>
+            <div class="drawer-body">
+                <div class="chapter-list-header">
+                    <h3>章节目录</h3>
+                    <button class="btn btn-outline" id="play-all-btn">播放全部</button>
+                </div>
+                <div class="chapter-list" id="chapter-list">
+                    <!-- Chapter items injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Compact Bottom Audio Player Bar -->
+        <footer class="player-bar hidden" id="player-bar">
+            <div class="player-left">
+                <div class="player-cover-container">
+                    <img id="player-cover" src="" alt="Book Cover">
+                </div>
+                <div class="player-meta">
+                    <div id="player-title" class="player-track-title">章节名称</div>
+                    <div id="player-book" class="player-book-title">书籍名称</div>
+                </div>
+            </div>
+            
+            <div class="player-center">
+                <div class="player-controls">
+                    <!-- Playback speed selector -->
+                    <div class="speed-control">
+                        <button class="control-btn-small" id="speed-btn">1.0x</button>
+                        <div class="speed-menu hidden" id="speed-menu">
+                            <div class="speed-option" data-speed="0.75">0.75x</div>
+                            <div class="speed-option active" data-speed="1.0">1.0x</div>
+                            <div class="speed-option" data-speed="1.25">1.25x</div>
+                            <div class="speed-option" data-speed="1.5">1.5x</div>
+                            <div class="speed-option" data-speed="1.75">1.75x</div>
+                            <div class="speed-option" data-speed="2.0">2.0x</div>
+                        </div>
+                    </div>
+
+                    <!-- Skip backward 15s -->
+                    <button class="control-btn" id="skip-back-btn" title="后退15秒">
+                        <svg viewBox="0 0 24 24" class="svg-icon"><path fill="currentColor" d="M12.5,3C17.15,3 21.08,6.03 22.47,10.22L20.1,11C19.05,7.81 16.04,5.5 12.5,5.5C9.07,5.5 6.18,7.63 5.07,10.68L7.6,11.5L3.5,15.5L0.5,10.5L3,11.3C4.46,7.5 8.16,4.8 12.5,3M11,18V10H8.5V11.5H9.5V18H11M14,10H16.5C17.3,10 18,10.7 18,11.5V13.5C18,14.3 17.3,15 16.5,15H15.5V16.5H16.5C17.3,16.5 18,17.2 18,18V19.5C18,20.3 17.3,21 16.5,21H14V19.5H15.5V18H14.5V16.5H15.5V15H14.5V13.5H15.5V11.5H14V10Z"/></svg>
+                    </button>
+
+                    <!-- Play / Pause -->
+                    <button class="control-btn play-btn" id="play-pause-btn">
+                        <svg id="svg-play" viewBox="0 0 24 24" class="svg-icon"><path fill="currentColor" d="M8,5.14V19.14L19,12.14L8,5.14Z"/></svg>
+                        <svg id="svg-pause" viewBox="0 0 24 24" class="svg-icon hidden"><path fill="currentColor" d="M14,19H18V5H14M6,19H10V5H6V19Z"/></svg>
+                    </button>
+
+                    <!-- Skip forward 15s -->
+                    <button class="control-btn" id="skip-forward-btn" title="前进15秒">
+                        <svg viewBox="0 0 24 24" class="svg-icon"><path fill="currentColor" d="M10,3C14.34,3 18.04,5.7 19.5,9.5L22,8.7L19,13.7L14.9,9.7L17.43,8.88C16.32,5.83 13.43,3.7 10,3.7C6.46,3.7 3.45,6 2.4,9.2L0.03,8.42C1.42,4.23 5.35,1.2 10,3M11.5,10V18H10V16.5H9V15H10V11.5H8.5V10H11.5M14,10H15.5V11.5H14.5V13.5H15.5V15H14.5V16.5H15.5V18H14V19.5H16.5C17.3,19.5 18,18.8 18,18V16.5C18,15.7 17.3,15 16.5,15V13.5C17.3,13.5 18,12.8 18,12V11.5C18,10.7 17.3,10 16.5,10H14V11.5Z"/></svg>
+                    </button>
+                    
+                    <!-- Next Chapter -->
+                    <button class="control-btn-small" id="next-btn" title="下一章">
+                        <svg viewBox="0 0 24 24" class="svg-icon-small"><path fill="currentColor" d="M4,18L12.5,12L4,6V18M13,6V18H15V6H13Z"/></svg>
+                    </button>
+                </div>
+
+                <div class="player-progress-container">
+                    <span id="player-time-current" class="time-label">0:00</span>
+                    <input type="range" id="player-progress-slider" min="0" max="100" value="0">
+                    <span id="player-time-duration" class="time-label">0:00</span>
+                </div>
+            </div>
+
+            <div class="player-right">
+                <!-- Volume Control -->
+                <div class="volume-container">
+                    <button class="icon-btn" id="volume-mute-btn">
+                        <svg id="svg-vol" viewBox="0 0 24 24" class="svg-icon"><path fill="currentColor" d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.77 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg>
+                        <svg id="svg-mute" viewBox="0 0 24 24" class="svg-icon hidden"><path fill="currentColor" d="M12,4L9.91,6.09L12,8.18M19,12C19,12.78 18.87,13.5 18.66,14.21L20.19,15.74C20.72,14.59 21,13.33 21,12C21,7.72 18,4.14 14,3.23V5.29C16.89,6.15 19,8.83 19,12M4.27,3L3,4.27L7.73,9H3V15H7L12,20V13.27L16.25,17.53C15.58,18.04 14.83,18.44 14,18.71V20.77C15.38,20.44 16.63,19.78 17.7,18.9L20.73,21.9L22,20.63L4.27,3M12,4L9.91,6.09L12,8.18V4M16.5,12C16.5,12.61 16.31,13.18 16,13.65L16.25,13.9M14,7.97V10.18L15.17,11.35C15.38,10.95 15.5,10.5 15.5,10V7.97C14,7.18 12.8,7.4 12,7.97Z"/></svg>
+                    </button>
+                    <input type="range" id="volume-slider" min="0" max="100" value="80">
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Hidden HTML5 Audio Element -->
+    <audio id="html5-audio" preload="auto"></audio>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
