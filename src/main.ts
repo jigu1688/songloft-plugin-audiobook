@@ -52,16 +52,17 @@ async function runScan() {
   const queue: string[] = [rootDir];
   const books: Book[] = [];
 
+  let dirsProcessedSinceYield = 0;
+
   try {
     while (queue.length > 0) {
       const dir = queue.shift()!;
       scanProgress.currentFolder = dir;
-      console.log(`[Scan] Scanning directory: ${dir}`);
+      dirsProcessedSinceYield++;
 
       let entries: any[] = [];
       try {
         entries = await songloft.fs.readdir(dir);
-        console.log(`[Scan] Read directory ${dir} successfully, found ${entries.length} items`);
       } catch (e: any) {
         console.error(`[Scan] Failed to read directory ${dir}:`, e.message || String(e));
         continue;
@@ -71,6 +72,7 @@ async function runScan() {
       let coverPath = '';
       let audioCount = 0;
       let audioSizeSum = 0;
+      const audioFiles: string[] = [];
 
       for (const entry of entries) {
         const entryPath = `${dir}/${entry.name}`;
@@ -80,10 +82,7 @@ async function runScan() {
           if (isAudio(entry.name)) {
             hasAudio = true;
             audioCount++;
-            try {
-              const stat = await songloft.fs.stat(entryPath);
-              audioSizeSum += stat.size || 0;
-            } catch (e) {}
+            audioFiles.push(entryPath);
           } else if (isImage(entry.name) && !coverPath) {
             coverPath = entryPath;
           }
@@ -91,33 +90,46 @@ async function runScan() {
       }
 
       if (hasAudio) {
+        // 并发查询文件体积，大幅降低 RPC 往返等待耗时
+        try {
+          const stats = await Promise.all(
+            audioFiles.map(filePath =>
+              songloft.fs.stat(filePath).catch(() => ({ size: 0 }))
+            )
+          );
+          for (const stat of stats) {
+            audioSizeSum += stat.size || 0;
+          }
+        } catch (e) {
+          console.error(`[Scan] Failed to stat audio files in ${dir}:`, e);
+        }
+
         let title = dir.slice(dir.lastIndexOf('/') + 1);
         let author = '未知作者';
         let description = '本地有声书';
-
         let type = '默认';
         let tags: string[] = [];
 
+        // 直接读取 metadata.json，减少 1 次 exists() RPC 往返
         const metaPath = `${dir}/metadata.json`;
         try {
-          const exists = await songloft.fs.exists(metaPath);
-          if (exists) {
-            const content = await songloft.fs.readFile(metaPath, { encoding: 'utf-8' });
-            const meta = JSON.parse(content);
-            if (meta.title) title = meta.title;
-            if (meta.author) author = meta.author;
-            if (meta.description) description = meta.description;
-            if (meta.type) type = meta.type;
-            if (meta.tags) tags = Array.isArray(meta.tags) ? meta.tags : meta.tags.split(',').map((t: string) => t.trim());
-            if (meta.cover) {
-              if (meta.cover.startsWith('/')) {
-                coverPath = meta.cover;
-              } else {
-                coverPath = `${dir}/${meta.cover}`;
-              }
+          const content = await songloft.fs.readFile(metaPath, { encoding: 'utf-8' });
+          const meta = JSON.parse(content);
+          if (meta.title) title = meta.title;
+          if (meta.author) author = meta.author;
+          if (meta.description) description = meta.description;
+          if (meta.type) type = meta.type;
+          if (meta.tags) tags = Array.isArray(meta.tags) ? meta.tags : meta.tags.split(',').map((t: string) => t.trim());
+          if (meta.cover) {
+            if (meta.cover.startsWith('/')) {
+              coverPath = meta.cover;
+            } else {
+              coverPath = `${dir}/${meta.cover}`;
             }
           }
-        } catch (e) {}
+        } catch (e) {
+          // 忽略读取失败，使用默认值
+        }
 
         const book = {
           path: dir,
@@ -133,10 +145,17 @@ async function runScan() {
         books.push(book);
         scanProgress.booksFound = books.length;
         console.log(`[Scan] Found book: "${title}" at ${dir} with ${audioCount} chapters`);
+        
+        // 发现书籍时出让控制权，让 UI 及状态正常更新
+        await new Promise(resolve => setTimeout(resolve, 0));
+        dirsProcessedSinceYield = 0;
+      } else {
+        // 无音频的子目录，每 20 个出让一次控制权，避免过度频繁调用 setTimeout 增加调度开销
+        if (dirsProcessedSinceYield >= 20) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+          dirsProcessedSinceYield = 0;
+        }
       }
-
-      // 出让控制权给 Microtask 循环，防止长时间阻塞导致的 QuickJS wall-clock 超时
-      await new Promise(resolve => setTimeout(resolve, 0));
     }
 
     console.log(`[Scan] Scan completed. Saving ${books.length} books to storage.`);
