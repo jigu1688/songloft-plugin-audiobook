@@ -90,15 +90,19 @@ async function runScan() {
       }
 
       if (hasAudio) {
-        // 并发查询文件体积，大幅降低 RPC 往返等待耗时
+        // 分批并发查询文件体积，每批最多 50 个请求，防止撑爆 Go-JS 桥接异步队列
         try {
-          const stats = await Promise.all(
-            audioFiles.map(filePath =>
-              songloft.fs.stat(filePath).catch(() => ({ size: 0 }))
-            )
-          );
-          for (const stat of stats) {
-            audioSizeSum += stat.size || 0;
+          const chunkSize = 50;
+          for (let i = 0; i < audioFiles.length; i += chunkSize) {
+            const chunk = audioFiles.slice(i, i + chunkSize);
+            const stats = await Promise.all(
+              chunk.map(filePath =>
+                songloft.fs.stat(filePath).catch(() => ({ size: 0 }))
+              )
+            );
+            for (const stat of stats) {
+              audioSizeSum += stat.size || 0;
+            }
           }
         } catch (e) {
           console.error(`[Scan] Failed to stat audio files in ${dir}:`, e);
