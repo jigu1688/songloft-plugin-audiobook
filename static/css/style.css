@@ -987,6 +987,7 @@ body {
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 480px;
+  max-height: calc(100% - 16px); /* 限制最大高度，防止超出遮罩层 */
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
@@ -1005,6 +1006,7 @@ body {
   justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid var(--outline-variant);
+  flex-shrink: 0; /* 防止头部被压缩 */
 }
 
 .modal-header h3 {
@@ -1017,6 +1019,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto; /* 允许主体内容滚动 */
+  flex: 1; /* 撑满剩余高度，响应 max-height 缩放 */
 }
 
 .modal-footer {
@@ -1026,6 +1030,7 @@ body {
   gap: 12px;
   padding: 16px 20px;
   border-top: 1px solid var(--outline-variant);
+  flex-shrink: 0; /* 防止底部按钮被压缩 */
 }
 
 /* 表单输入元素 */
