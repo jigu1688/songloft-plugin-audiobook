@@ -839,17 +839,23 @@ body {
   transform: scale(0.95);
 }
 
-.play-btn-large {
+#play-pause-btn.play-btn-large {
   width: 64px;
   height: 64px;
-  background: var(--primary);
-  color: var(--on-primary);
-  border: none;
+  background: var(--primary) !important;
+  color: var(--on-primary) !important;
+  border: none !important;
+  box-shadow: var(--shadow-lg) !important;
 }
 
-.play-btn-large:hover {
-  filter: brightness(1.15);
-  transform: scale(1.08);
+#play-pause-btn.play-btn-large:hover {
+  background: var(--primary) !important;
+  filter: brightness(1.15) !important;
+  transform: scale(1.08) !important;
+}
+
+#play-pause-btn.play-btn-large:active {
+  transform: scale(0.95) !important;
 }
 
 /* 控制台底部菜单行 */
