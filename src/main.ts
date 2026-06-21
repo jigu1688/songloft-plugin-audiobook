@@ -43,6 +43,7 @@ function isImage(filename: string): boolean {
 }
 
 async function runScan() {
+  console.log('[Scan] Starting audiobook directory scan...');
   scanProgress.status = 'scanning';
   scanProgress.booksFound = 0;
   scanProgress.currentFolder = '';
@@ -55,11 +56,14 @@ async function runScan() {
     while (queue.length > 0) {
       const dir = queue.shift()!;
       scanProgress.currentFolder = dir;
+      console.log(`[Scan] Scanning directory: ${dir}`);
 
       let entries: any[] = [];
       try {
         entries = await songloft.fs.readdir(dir);
-      } catch (e) {
+        console.log(`[Scan] Read directory ${dir} successfully, found ${entries.length} items`);
+      } catch (e: any) {
+        console.error(`[Scan] Failed to read directory ${dir}:`, e.message || String(e));
         continue;
       }
 
@@ -91,6 +95,9 @@ async function runScan() {
         let author = '未知作者';
         let description = '本地有声书';
 
+        let type = '默认';
+        let tags: string[] = [];
+
         const metaPath = `${dir}/metadata.json`;
         try {
           const exists = await songloft.fs.exists(metaPath);
@@ -100,6 +107,8 @@ async function runScan() {
             if (meta.title) title = meta.title;
             if (meta.author) author = meta.author;
             if (meta.description) description = meta.description;
+            if (meta.type) type = meta.type;
+            if (meta.tags) tags = Array.isArray(meta.tags) ? meta.tags : meta.tags.split(',').map((t: string) => t.trim());
             if (meta.cover) {
               if (meta.cover.startsWith('/')) {
                 coverPath = meta.cover;
@@ -110,7 +119,7 @@ async function runScan() {
           }
         } catch (e) {}
 
-        books.push({
+        const book = {
           path: dir,
           title,
           author,
@@ -118,17 +127,23 @@ async function runScan() {
           description,
           chapterCount: audioCount,
           totalSize: audioSizeSum,
-        });
+          type,
+          tags,
+        };
+        books.push(book);
         scanProgress.booksFound = books.length;
+        console.log(`[Scan] Found book: "${title}" at ${dir} with ${audioCount} chapters`);
       }
 
       // 出让控制权给 Microtask 循环，防止长时间阻塞导致的 QuickJS wall-clock 超时
       await new Promise(resolve => setTimeout(resolve, 0));
     }
 
+    console.log(`[Scan] Scan completed. Saving ${books.length} books to storage.`);
     await songloft.storage.set('books', JSON.stringify(books));
     scanProgress.status = 'completed';
   } catch (err: any) {
+    console.error('[Scan] Critical error during scan:', err.message || String(err));
     scanProgress.status = 'failed';
     scanProgress.error = err.message || String(err);
   } finally {
@@ -202,6 +217,10 @@ router.get('/api/stream', async (req) => {
   } as any;
 });
 
+function getSafeStorageKey(bookPath: string): string {
+  return `progress_${bookPath.replace(/[\/\\]/g, '_')}`;
+}
+
 router.post('/api/progress', async (req) => {
   const body = JSON.parse(req.body);
   const { bookPath, chapterPath, chapterName, offset, duration } = body;
@@ -217,7 +236,7 @@ router.post('/api/progress', async (req) => {
     updatedAt: Date.now()
   };
 
-  const key = `progress_${bookPath}`;
+  const key = getSafeStorageKey(bookPath);
   await songloft.storage.set(key, JSON.stringify(progress));
 
   await songloft.storage.set('last_played_book', JSON.stringify({
@@ -237,9 +256,66 @@ router.get('/api/progress', async (req) => {
     return jsonResponse({ lastPlayed: lastData ? JSON.parse(lastData as string) : null });
   }
 
-  const key = `progress_${bookPath}`;
+  const key = getSafeStorageKey(bookPath);
   const data = await songloft.storage.get(key);
   return jsonResponse({ progress: data ? JSON.parse(data as string) : null });
+});
+
+router.post('/api/books/update', async (req) => {
+  const body = JSON.parse(req.body);
+  const { path, title, author, description, type, tags, coverUrl, coverBase64, coverExt } = body;
+  if (!path) {
+    return jsonResponse({ error: 'path is required' }, 400);
+  }
+
+  let finalCoverPath = coverUrl || '';
+  if (coverBase64) {
+    const ext = coverExt || 'jpg';
+    const coverName = `cover.${ext}`;
+    const fullCoverPath = `${path}/${coverName}`;
+    try {
+      await songloft.fs.writeFile(fullCoverPath, coverBase64, { encoding: 'base64' });
+      finalCoverPath = fullCoverPath;
+    } catch (e: any) {
+      console.error(`[Edit] Failed to save cover file: ${e.message}`);
+    }
+  }
+
+  const metaPath = `${path}/metadata.json`;
+  const metaContent = {
+    title: title || '',
+    author: author || '未知作者',
+    description: description || '',
+    type: type || '默认',
+    tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map((t: string) => t.trim())) : [],
+    cover: finalCoverPath ? (finalCoverPath.startsWith(path) ? finalCoverPath.slice(path.length + 1) : finalCoverPath) : ''
+  };
+
+  try {
+    await songloft.fs.writeFile(metaPath, JSON.stringify(metaContent, null, 2));
+  } catch (e: any) {
+    console.error(`[Edit] Failed to write metadata.json: ${e.message}`);
+    return jsonResponse({ error: `Failed to write metadata.json: ${e.message}` }, 500);
+  }
+
+  try {
+    const data = await songloft.storage.get('books');
+    const books = data ? JSON.parse(data as string) : [];
+    const bookIndex = books.findIndex((b: any) => b.path === path);
+    if (bookIndex >= 0) {
+      books[bookIndex].title = title || books[bookIndex].title;
+      books[bookIndex].author = author || '未知作者';
+      books[bookIndex].description = description || '';
+      books[bookIndex].cover = finalCoverPath;
+      books[bookIndex].type = type || '默认';
+      books[bookIndex].tags = metaContent.tags;
+      await songloft.storage.set('books', JSON.stringify(books));
+    }
+  } catch (e: any) {
+    console.error(`[Edit] Failed to update storage books list: ${e.message}`);
+  }
+
+  return jsonResponse({ ok: true });
 });
 
 globalThis.onHTTPRequest = async (req: HTTPRequest) => router.handle(req);
