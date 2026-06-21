@@ -243,8 +243,19 @@
 
   // 过滤和排序书籍
   function filterAndSortBooks() {
-    const query = dom.searchInput.value.trim().toLowerCase();
+    const rawVal = dom.searchInput.value;
+    const query = rawVal.trim().toLowerCase();
     state.searchQuery = query;
+
+    // 显示或隐藏快速删除（清空）按钮
+    const clearBtn = document.getElementById('search-clear');
+    if (clearBtn) {
+      if (rawVal.length > 0) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
+    }
 
     const showOnlyFav = dom.favoriteFilter.checked;
 
@@ -1062,6 +1073,15 @@
     dom.searchInput.addEventListener('input', filterAndSortBooks);
     dom.sortSelect.addEventListener('change', filterAndSortBooks);
     dom.favoriteFilter.addEventListener('change', filterAndSortBooks);
+
+    const clearBtn = document.getElementById('search-clear');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        dom.searchInput.value = '';
+        filterAndSortBooks();
+        dom.searchInput.focus();
+      });
+    }
 
     // 扫描
     dom.scanBtn.addEventListener('click', triggerScan);

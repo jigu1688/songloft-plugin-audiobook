@@ -189,6 +189,16 @@ body {
   color: var(--text-secondary);
 }
 
+#search-clear {
+  margin-right: 4px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+#search-clear:hover {
+  color: var(--text-primary);
+}
+
 /* 按钮通用 */
 .btn {
   display: inline-flex;
