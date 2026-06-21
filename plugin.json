@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/songloft-org/plugin-toolchain/main/schemas/plugin.schema.json",
-  "name": "有声书播放器",
+  "name": "有声书",
   "version": "2.0.0",
   "description": "全新本地有声书管理与播放：异步高效扫描本地目录，提供小卡片响应式布局、收藏排序、15s快进退、倍速播放与进度续播功能。",
   "author": "Songloft Developer",
