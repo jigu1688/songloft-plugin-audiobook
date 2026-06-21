@@ -848,13 +848,19 @@ body {
   box-shadow: var(--shadow-lg) !important;
 }
 
-#play-pause-btn.play-btn-large:hover {
+#play-pause-btn.play-btn-large:hover,
+#play-pause-btn.play-btn-large:focus,
+#play-pause-btn.play-btn-large:focus-visible,
+#play-pause-btn.play-btn-large:focus-within {
   background: var(--primary) !important;
+  color: var(--on-primary) !important;
   filter: brightness(1.15) !important;
   transform: scale(1.08) !important;
+  outline: none !important;
 }
 
 #play-pause-btn.play-btn-large:active {
+  background: var(--primary) !important;
   transform: scale(0.95) !important;
 }
 
