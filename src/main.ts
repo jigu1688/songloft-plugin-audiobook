@@ -206,21 +206,21 @@ router.get('/api/chapters', async (req) => {
     return jsonResponse({ error: e.message }, 500);
   }
 
+  const audioEntries = entries.filter(entry => !entry.isDir && isAudio(entry.name));
   const chapters: Chapter[] = [];
-  for (const entry of entries) {
-    if (!entry.isDir && isAudio(entry.name)) {
-      const entryPath = `${bookPath}/${entry.name}`;
-      let size = 0;
-      try {
-        const stat = await songloft.fs.stat(entryPath);
-        size = stat.size || 0;
-      } catch (e) {}
-      chapters.push({
-        name: entry.name,
-        path: entryPath,
-        size,
-      });
-    }
+
+  const chunkSize = 100;
+  for (let i = 0; i < audioEntries.length; i += chunkSize) {
+    const chunk = audioEntries.slice(i, i + chunkSize);
+    const stats = await Promise.all(
+      chunk.map(entry => {
+        const entryPath = `${bookPath}/${entry.name}`;
+        return songloft.fs.stat(entryPath)
+          .then(stat => ({ name: entry.name, path: entryPath, size: stat.size || 0 }))
+          .catch(() => ({ name: entry.name, path: entryPath, size: 0 }));
+      })
+    );
+    chapters.push(...stats);
   }
 
   chapters.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
